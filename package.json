@@ -26,8 +26,7 @@
     "pidusage": "^1.0.4",
     "raven": "^0.10.0",
     "uuid": "^3.0.1",
-    "v8-profiler-node8": "^5.7.6",
-    "zipkin-javascript-opentracing": "^2.0.0"
+    "v8-profiler-node8": "^5.7.6"
   },
   "devDependencies": {
     "hapi16": "npm:hapi@16.x.x",
