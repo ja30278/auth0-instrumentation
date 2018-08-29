@@ -419,5 +419,6 @@ describe('tracer hapi16 middleware', function() {
           done(err);
         });
     });
+
   });
 });
