@@ -3,6 +3,7 @@ const opentracing = require('opentracing');
 const express = require('express');
 const request = require('supertest');
 const sinon = require('sinon');
+const hapi16 = require('hapi16');
 
 describe('tracer stub', function() {
   var $mock;
@@ -250,6 +251,151 @@ describe('tracer using jaeger-client', function() {
       assert.hasOwnProperty($tracer.Tags, 'AUTH0_ENVIRONMENT');
       assert.hasOwnProperty($tracer.Tags, 'AUTH0_REGION');
       assert.hasOwnProperty($tracer.Tags, 'AUTH0_CHANNEL');
+    });
+  });
+});
+
+describe.only('tracer hapi16 middleware', function() {
+  describe('middleware with stubs', function() {
+    var server;
+    var mock;
+    var tracer;
+    beforeEach(done => {
+      mock = new opentracing.MockTracer();
+      mock.inject = (span, format, carrier) => {
+        carrier['x-span-id'] = span.uuid();
+      };
+      mock.extract = sinon.fake();
+      tracer = require('../lib/tracer')({}, {}, {}, mock);
+      
+      server = new hapi16.Server();
+      server.connection({ port: 9999 });
+      server.route({
+        method: 'GET',
+        path: '/success',
+        handler: (request, reply) => {
+          reply('ok');
+        }
+      });
+      server.route({
+        method: 'GET',
+        path: '/failure',
+        handler: (request, reply) => {
+          reply('server error').statusCode = 500;
+        }
+      });
+      server.route({
+        method: 'GET',
+        path: '/error',
+        handler: (request, reply) => {
+          reply(new Error('failure'));
+        }
+      });
+      server.route({
+        method: 'GET',
+        path: '/moreinfo',
+        handler: (request, reply) => {
+          request.a0trace.span.setTag('more_info', 'here');
+          reply('ok');
+        }
+      });
+      server.register(tracer.middleware.hapi16, err => {
+        if (err) { done(err); }
+      });
+      server.start(err => {
+        if (err) {
+          return done(err);
+        }
+        done();
+      });
+    });
+
+    afterEach(done => {
+      server.stop(done);
+    });
+
+    it('should create new child spans', function(done) {
+      const req = { method: 'GET', url: `${server.info.uri}/success` };
+      server.inject(req)
+        .then(res => {
+          assert.equal(200, res.statusCode);
+          const report = mock.report();
+          assert.equal(4, report.spans.length);
+          const reqSpan = report.firstSpanWithTagValue(tracer.Tags.HTTP_STATUS_CODE, 200);
+          assert.ok(reqSpan);
+          assert.equal('/success', reqSpan.operationName());
+          done();
+        })
+        .catch(err => {
+          done(err);
+        });
+    });
+
+    it('should set error tags on failure', function(done) {
+      const req = { method: 'GET', url: `${server.info.uri}/failure` };
+      server.inject(req)
+        .then(res => {
+          assert.equal(500, res.statusCode);
+          const report = mock.report();
+          assert.equal(4, report.spans.length);
+          const reqSpan = report.firstSpanWithTagValue(tracer.Tags.ERROR, true);
+          assert.ok(reqSpan);
+          assert.equal('/failure', reqSpan.operationName());
+          done();
+        })
+        .catch(err => {
+          done(err);
+        });
+    });
+
+    it('should set error tags on exceptions', function(done) {
+      const req = { method: 'GET', url: `${server.info.uri}/error` };
+      server.inject(req)
+        .then(res => {
+          assert.equal(500, res.statusCode);
+          const report = mock.report();
+          assert.equal(4, report.spans.length);
+          const reqSpan = report.firstSpanWithTagValue(tracer.Tags.ERROR, true);
+          assert.ok(reqSpan);
+          assert.equal('/error', reqSpan.operationName());
+          done();
+        })
+        .catch(err => {
+          done(err);
+        });
+    });
+
+    it('should include span headers in the response', function(done) {
+      const req = { method: 'GET', url: `${server.info.uri}/success` };
+      server.inject(req)
+        .then(res => {
+          assert.equal(200, res.statusCode);
+          const report = mock.report();
+          const child = report.firstSpanWithTagValue(tracer.Tags.HTTP_STATUS_CODE, 200);
+          assert.ok(child);
+          assert.equal(child.uuid(), res.headers['x-span-id']);
+          done();
+        })
+        .catch(err => {
+          done(err);
+        });
+    });
+
+    it('should make the created span available to handlers', function(done) {
+      const req = { method: 'GET', url: `${server.info.uri}/moreinfo` };
+      server.inject(req)
+        .then(res => {
+          assert.equal(200, res.statusCode);
+          const report = mock.report();
+          assert.equal(4, report.spans.length);
+          const reqSpan = report.firstSpanWithTagValue('more_info', 'here');
+          assert.ok(reqSpan);
+          assert.equal('/moreinfo', reqSpan.operationName());
+          done();
+        })
+        .catch(err => {
+          done(err);
+        });
     });
   });
 });
