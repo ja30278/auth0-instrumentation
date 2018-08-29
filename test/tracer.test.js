@@ -256,6 +256,12 @@ describe('tracer using jaeger-client', function() {
 });
 
 describe.only('tracer hapi16 middleware', function() {
+  // We expect 4 spans:
+  //  - request (top level span)
+  //  - auth
+  //  - handler
+  //  - response
+  const SPAN_COUNT = 4;
   describe('middleware with stubs', function() {
     var server;
     var mock;
@@ -320,7 +326,7 @@ describe.only('tracer hapi16 middleware', function() {
         .then(res => {
           assert.equal(200, res.statusCode);
           const report = mock.report();
-          assert.equal(4, report.spans.length);
+          assert.equal(SPAN_COUNT, report.spans.length);
           const reqSpan = report.firstSpanWithTagValue(tracer.Tags.HTTP_STATUS_CODE, 200);
           assert.ok(reqSpan);
           assert.equal('/success', reqSpan.operationName());
@@ -337,7 +343,7 @@ describe.only('tracer hapi16 middleware', function() {
         .then(res => {
           assert.equal(500, res.statusCode);
           const report = mock.report();
-          assert.equal(4, report.spans.length);
+          assert.equal(SPAN_COUNT, report.spans.length);
           const reqSpan = report.firstSpanWithTagValue(tracer.Tags.ERROR, true);
           assert.ok(reqSpan);
           assert.equal('/failure', reqSpan.operationName());
@@ -354,7 +360,7 @@ describe.only('tracer hapi16 middleware', function() {
         .then(res => {
           assert.equal(500, res.statusCode);
           const report = mock.report();
-          assert.equal(4, report.spans.length);
+          assert.equal(SPAN_COUNT, report.spans.length);
           const reqSpan = report.firstSpanWithTagValue(tracer.Tags.ERROR, true);
           assert.ok(reqSpan);
           assert.equal('/error', reqSpan.operationName());
@@ -365,13 +371,29 @@ describe.only('tracer hapi16 middleware', function() {
         });
     });
 
-    it('should include span headers in the response', function(done) {
+    it('should include span headers in the response when successful', function(done) {
       const req = { method: 'GET', url: `${server.info.uri}/success` };
       server.inject(req)
         .then(res => {
           assert.equal(200, res.statusCode);
           const report = mock.report();
           const child = report.firstSpanWithTagValue(tracer.Tags.HTTP_STATUS_CODE, 200);
+          assert.ok(child);
+          assert.equal(child.uuid(), res.headers['x-span-id']);
+          done();
+        })
+        .catch(err => {
+          done(err);
+        });
+    });
+
+    it('should include span headers in the response for failures', function(done) {
+      const req = { method: 'GET', url: `${server.info.uri}/error` };
+      server.inject(req)
+        .then(res => {
+          assert.equal(500, res.statusCode);
+          const report = mock.report();
+          const child = report.firstSpanWithTagValue(tracer.Tags.HTTP_STATUS_CODE, 500);
           assert.ok(child);
           assert.equal(child.uuid(), res.headers['x-span-id']);
           done();
