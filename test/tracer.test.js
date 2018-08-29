@@ -255,7 +255,7 @@ describe('tracer using jaeger-client', function() {
   });
 });
 
-describe.only('tracer hapi16 middleware', function() {
+describe('tracer hapi16 middleware', function() {
   // We expect 4 spans:
   //  - request (top level span)
   //  - auth
