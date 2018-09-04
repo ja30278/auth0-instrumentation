@@ -33,6 +33,7 @@
     "express": "^4.16.3",
     "hapi16": "npm:hapi@16.x.x",
     "hapi17": "npm:hapi@17.x.x",
+    "memorystream": "^0.3.1",
     "mocha": "^3.0.0",
     "nsp": "^2.5.0",
     "proxyquire": "^2.0.1",
