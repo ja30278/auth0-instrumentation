@@ -320,7 +320,7 @@ describe('tracer hapi16 middleware', function() {
       server.stop(done);
     });
 
-    it('should create new child spans', function(done) {
+    it('should create new child spans', function() {
       const req = { method: 'GET', url: `${server.info.uri}/success` };
       server.inject(req)
         .then(res => {
@@ -330,14 +330,10 @@ describe('tracer hapi16 middleware', function() {
           const reqSpan = report.firstSpanWithTagValue(tracer.Tags.HTTP_STATUS_CODE, 200);
           assert.ok(reqSpan);
           assert.equal('/success', reqSpan.operationName());
-          done();
-        })
-        .catch(err => {
-          done(err);
         });
     });
 
-    it('should set error tags on failure', function(done) {
+    it('should set error tags on failure', function() {
       const req = { method: 'GET', url: `${server.info.uri}/failure` };
       server.inject(req)
         .then(res => {
@@ -347,16 +343,12 @@ describe('tracer hapi16 middleware', function() {
           const reqSpan = report.firstSpanWithTagValue(tracer.Tags.ERROR, true);
           assert.ok(reqSpan);
           assert.equal('/failure', reqSpan.operationName());
-          done();
-        })
-        .catch(err => {
-          done(err);
         });
     });
 
-    it('should set error tags on exceptions', function(done) {
+    it('should set error tags on exceptions', function() {
       const req = { method: 'GET', url: `${server.info.uri}/error` };
-      server.inject(req)
+      return server.inject(req)
         .then(res => {
           assert.equal(500, res.statusCode);
           const report = mock.report();
@@ -364,48 +356,36 @@ describe('tracer hapi16 middleware', function() {
           const reqSpan = report.firstSpanWithTagValue(tracer.Tags.ERROR, true);
           assert.ok(reqSpan);
           assert.equal('/error', reqSpan.operationName());
-          done();
-        })
-        .catch(err => {
-          done(err);
         });
     });
 
-    it('should include span headers in the response when successful', function(done) {
+    it('should include span headers in the response when successful', function() {
       const req = { method: 'GET', url: `${server.info.uri}/success` };
-      server.inject(req)
+      return server.inject(req)
         .then(res => {
           assert.equal(200, res.statusCode);
           const report = mock.report();
           const child = report.firstSpanWithTagValue(tracer.Tags.HTTP_STATUS_CODE, 200);
           assert.ok(child);
           assert.equal(child.uuid(), res.headers['x-span-id']);
-          done();
-        })
-        .catch(err => {
-          done(err);
         });
     });
 
-    it('should include span headers in the response for failures', function(done) {
+    it('should include span headers in the response for failures', function() {
       const req = { method: 'GET', url: `${server.info.uri}/error` };
-      server.inject(req)
+      return server.inject(req)
         .then(res => {
           assert.equal(500, res.statusCode);
           const report = mock.report();
           const child = report.firstSpanWithTagValue(tracer.Tags.HTTP_STATUS_CODE, 500);
           assert.ok(child);
           assert.equal(child.uuid(), res.headers['x-span-id']);
-          done();
-        })
-        .catch(err => {
-          done(err);
         });
     });
 
-    it('should make the created span available to handlers', function(done) {
+    it('should make the created span available to handlers', function() {
       const req = { method: 'GET', url: `${server.info.uri}/moreinfo` };
-      server.inject(req)
+      return server.inject(req)
         .then(res => {
           assert.equal(200, res.statusCode);
           const report = mock.report();
@@ -413,10 +393,6 @@ describe('tracer hapi16 middleware', function() {
           const reqSpan = report.firstSpanWithTagValue('more_info', 'here');
           assert.ok(reqSpan);
           assert.equal('/moreinfo', reqSpan.operationName());
-          done();
-        })
-        .catch(err => {
-          done(err);
         });
     });
 
