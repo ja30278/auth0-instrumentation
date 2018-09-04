@@ -307,8 +307,8 @@ describe('tracer hapi16 middleware', function() {
       });
       server.register(tracer.middleware.hapi16, err => {
         if (err) { done(err); }
+        server.start(done);
       });
-      server.start(done);
     });
 
     afterEach(done => {
