@@ -1,7 +1,5 @@
 const assert = require('assert');
 const sinon = require('sinon');
-const MemoryStream = require('memorystream');
-const v8Profiler = require('v8-profiler-node8');
 
 const Profiler = require('../lib/profiler');
 
@@ -27,18 +25,12 @@ describe('Profiler', function() {
 
   describe('#createThrottledSnapshot', function() {
     it('should create a snapshot and report', function(done) {
-      const snapshot = {
-        'export': sinon.fake.returns(new MemoryStream(['snapshot']))
-      };
-      sinon.replace(profiler, 'report', sinon.fake());
-      sinon.replace(v8Profiler, 'takeSnapshot', sinon.fake.returns(snapshot)); 
+      sinon.replace(profiler, 'report', sinon.spy());
       this.timeout(3000);
       profiler.createThrottledSnapshot('testing');
       setTimeout(() => {
         try {
-          assert(1, v8Profiler.takeSnapshot.callCount);
-          assert(1, profiler.report.callCount);
-          assert(1, snapshot.export.callCount);
+          assert(profiler.report.calledOnceWith(sinon.match.defined, sinon.match('testing')));
           done();
         } catch (err) {
           done(err);
