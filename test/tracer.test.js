@@ -308,12 +308,7 @@ describe('tracer hapi16 middleware', function() {
       server.register(tracer.middleware.hapi16, err => {
         if (err) { done(err); }
       });
-      server.start(err => {
-        if (err) {
-          return done(err);
-        }
-        done();
-      });
+      server.start(done);
     });
 
     afterEach(done => {
@@ -322,7 +317,7 @@ describe('tracer hapi16 middleware', function() {
 
     it('should create new child spans', function() {
       const req = { method: 'GET', url: `${server.info.uri}/success` };
-      server.inject(req)
+      return server.inject(req)
         .then(res => {
           assert.equal(200, res.statusCode);
           const report = mock.report();
@@ -335,7 +330,7 @@ describe('tracer hapi16 middleware', function() {
 
     it('should set error tags on failure', function() {
       const req = { method: 'GET', url: `${server.info.uri}/failure` };
-      server.inject(req)
+      return server.inject(req)
         .then(res => {
           assert.equal(500, res.statusCode);
           const report = mock.report();
