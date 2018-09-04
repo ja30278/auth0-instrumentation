@@ -273,7 +273,7 @@ describe('tracer hapi16 middleware', function() {
       };
       mock.extract = sinon.fake();
       tracer = require('../lib/tracer')({}, {}, {}, mock);
-      
+
       server = new hapi16.Server();
       server.connection({ port: 9999 });
       server.route({
