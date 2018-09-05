@@ -56,7 +56,7 @@ metrics.histogram('service.time', 0.248);
 
 The tracing feature can be used with any backend that supports [opentracing](http://opentracing.io/).
 
-Usage:
+Basic Usage:
 
 ```js
 var pkg = require('./package.json');
@@ -85,6 +85,48 @@ tracer.captureFunc('child1', function(child1) {
   }, child1);
 }, rootSpan);
 rootSpan.finish();
+```
+
+The tracer also provides middleware for several common frameworks
+
+For expressjs
+
+```js
+var pkg = require('./package.json');
+var env = require('./lib/env');
+var agent = require('auth0-instrumentation');
+var express = require('express');
+
+agent.init(pkg, env);
+var tracer = agent.tracer;
+var app = express();
+
+// This will automatically extract any parent span from the headers
+// of incoming requests, wraps the request in a span, and will make
+// the request span available to handlers as 'req.a0trace.span'
+app.use(tracer.middleware.express);
+```
+
+For hapijs (only hapi16 is currently supported).
+
+```js
+var pkg = require('./package.json');
+var env = require('./lib/env');
+var agent = require('auth0-instrumentation');
+var hapi = require('hapi');
+
+agent.init(pkg, env);
+var tracer = agent.tracer;
+
+var server = new hapi.Server();
+
+
+// This will automatically extract any parent span from the headers
+// of incoming requests, wraps the request is a span, and will make
+// the request span available to handlers as 'req.a0trace.span'.
+// Additional child spans are automatically created for events in
+// the hapi request lifecycle.
+server.register(tracer.middleware.hapi16);
 ```
 
 ## Errors
