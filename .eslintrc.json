@@ -25,6 +25,10 @@
     "no-console": [
      "error",
      { "allow": ["debug", "info", "warn", "error"] }
+    ],
+    "no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_" }
     ]
   }
 }

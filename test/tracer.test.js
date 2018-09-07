@@ -110,10 +110,10 @@ describe('tracer express middleware', function() {
       $tracer = require('../lib/tracer')({}, {}, {}, $mock);
       app = express();
       app.use($tracer.middleware.express);
-      app.get('/success', function(req, res) {
+      app.get('/success', function(_req, res) {
         res.status(200).send('ok');
       });
-      app.get('/error', function(req, res) {
+      app.get('/error', function(_req, res) {
         res.status(500).send('error');
       });
       app.get('/exception', function() {
@@ -122,6 +122,11 @@ describe('tracer express middleware', function() {
       app.get('/moreinfo', function(req, res) {
         req.a0trace.span.setTag('moreinfo', 'here');
         res.status(200).send('ok');
+      });
+      // avoid printing the stack for throw exceptions, which
+      // pollutes the test logs.
+      app.use((_err, _req, res, _next) => {
+        res.status(500).send('error');
       });
     });
 
@@ -233,10 +238,10 @@ describe('tracer express middleware', function() {
     });
 
     it('should create and finish spans on response', function() {
-      app.use($tracer.middleware.express.wrap('response', function(req, res, next) {
+      app.use($tracer.middleware.express.wrap('response', function(_req, res, _next) {
         res.status(401).send('go away');
       }));
-      app.get('/', function(req, res) {
+      app.get('/', function(_req, res) {
         res.send('ok');
       });
       return request(app)
@@ -252,11 +257,16 @@ describe('tracer express middleware', function() {
     });
 
     it('should create and finish spans on errors', function() {
-      app.use($tracer.middleware.express.wrap('error', function(req, res, next) {
+      app.use($tracer.middleware.express.wrap('error', function() {
         throw new Error('middlware error');
       }));
-      app.get('/', function(req, res) {
+      app.get('/', function(_req, res) {
         res.send('ok');
+      });
+      // avoid printing the stack for throw exceptions, which
+      // pollutes the test logs.
+      app.use((_err, _req, res, _next) => {
+        res.status(500).send('error');
       });
       return request(app)
         .get('/')
