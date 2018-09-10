@@ -25,6 +25,7 @@
     "on-finished": "^2.3.0",
     "opentracing": "^0.14.3",
     "pidusage": "^1.0.4",
+    "protobufjs": "^6.8.8",
     "raven": "^0.10.0",
     "uuid": "^3.0.1",
     "v8-profiler-node8": "^5.7.6"

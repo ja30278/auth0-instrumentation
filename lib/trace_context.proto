@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package auth0.instrumentation;
+
+// A SpanContext message contains the protocol buffer
+// representation of the information needed to propagate
+// a span.
+// This message is useful for passing trace context between
+// services that used protocol buffers to communicate.
+message SpanContext {
+  map<string, string> span_context_map = 1;
+};
