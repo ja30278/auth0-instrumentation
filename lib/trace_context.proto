@@ -4,9 +4,11 @@ package auth0.instrumentation;
 
 // A SpanContext message contains the protocol buffer
 // representation of the information needed to propagate
-// a span.
-// This message is useful for passing trace context between
-// services that used protocol buffers to communicate.
+// an opentracing span.
+// A serialized version of this message is used as the
+// carrier for the AUTH0_BINARY format.
 message SpanContext {
+  // span_context_map is an opaque set of key/value pairs as
+  // returned by the 'Text Map' opentracing format.
   map<string, string> span_context_map = 1;
 };

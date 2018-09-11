@@ -1,9 +1,11 @@
 const assert = require('assert');
-const opentracing = require('opentracing');
 const express = require('express');
+const hapi16 = require('hapi16');
+const opentracing = require('opentracing');
+const path = require('path');
+const protobuf = require('protobufjs');
 const request = require('supertest');
 const sinon = require('sinon');
-const hapi16 = require('hapi16');
 
 describe('tracer stub', function() {
   var $mock;
@@ -464,5 +466,65 @@ describe('tracer hapi16 middleware', function() {
         });
     });
 
+  });
+});
+
+describe('auth0 binary format', function() {
+
+  var TraceContextTest;
+  before(function(done) {
+    const protoRoot = new protobuf.Root();
+    protoRoot.load(path.join(__dirname, 'tracer_test.proto'), (err, root) => {
+      if (err) {
+        return done(err);
+      }
+      TraceContextTest = root.lookupType('auth0.instrumentation.TraceContextTest');
+      done();
+    });
+  });
+
+  var $mock;
+  var $tracer;
+  beforeEach(function() {
+    $mock = new opentracing.MockTracer();
+    $mock.inject = function(span, format, carrier) {
+      if (format == $tracer.FORMAT_TEXT_MAP) {
+        carrier['uuid'] = span.uuid();
+        carrier['operationName'] = span.operationName();
+      }
+    };
+    $mock.extract = function(format, carrier) {
+      // just return the carrier.
+      if (format == $tracer.FORMAT_TEXT_MAP) {
+        return carrier;
+      }
+    };
+    $tracer = require('../lib/tracer')({}, {}, {}, $mock);
+  });
+
+  it('should be able to inject and extract using AUTH0_FORMAT', function() {
+    const msg = TraceContextTest.create({name: 'test'});
+    const span = $tracer.startSpan('testspan');
+
+    // Inject the span using AUTH0_BINARY format, which will encode it to a protocol
+    // buffer.
+    $tracer.inject(span, $tracer.FORMAT_AUTH0_BINARY, (buffer) => { msg.spanContext = buffer; });
+    assert.notEqual(msg.spanContext.length, 0);
+
+    // Extract from the buffer. In this case, the mock function
+    // above just 'passes through' the mocked TEXT_MAP representation.
+    const extracted = $tracer.extract($tracer.FORMAT_AUTH0_BINARY, msg.spanContext);
+    assert.ok(extracted);
+
+    // Verify that the round trip was successful
+    assert.equal(span.uuid(), extracted['uuid']);
+    assert.equal(span.operationName(), extracted['operationName']);
+  });
+
+  it('should handle bad data', function() {
+    assert.doesNotThrow(() => { 
+      const extracted = $tracer.extract($tracer.FORMAT_AUTH0_BINARY, 'bad data here');
+      assert(!extracted);
+    });
   });
 });
