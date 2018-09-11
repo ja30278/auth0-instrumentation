@@ -110,10 +110,10 @@ describe('tracer express middleware', function() {
       $tracer = require('../lib/tracer')({}, {}, {}, $mock);
       app = express();
       app.use($tracer.middleware.express);
-      app.get('/success', function(req, res) {
+      app.get('/success', function(_req, res) {
         res.status(200).send('ok');
       });
-      app.get('/error', function(req, res) {
+      app.get('/error', function(_req, res) {
         res.status(500).send('error');
       });
       app.get('/exception', function() {
@@ -123,10 +123,15 @@ describe('tracer express middleware', function() {
         req.a0trace.span.setTag('moreinfo', 'here');
         res.status(200).send('ok');
       });
+      // avoid printing the stack for throw exceptions, which
+      // pollutes the test logs.
+      app.use((_err, _req, res, _next) => {
+        res.status(500).send('error');
+      });
     });
 
-    it('should create new child spans', function(done) {
-      request(app)
+    it('should create new child spans', function() {
+      return request(app)
         .get('/success')
         .expect(200)
         .expect(function() {
@@ -137,27 +142,22 @@ describe('tracer express middleware', function() {
           assert.equal('/success', child.operationName());
           assert.equal('GET', child.tags()[$tracer.Tags.HTTP_METHOD]);
           assert.equal($tracer.Tags.SPAN_KIND_RPC_SERVER, child.tags()[$tracer.Tags.SPAN_KIND]);
-        })
-        .then(() =>  { done(); })
-        .catch(err => { done(err); });
+        });
     });
 
-    it('should make the created span available to the request', function(done) {
-      request(app)
+    it('should make the created span available to the request', function() {
+      return request(app)
         .get('/moreinfo')
         .expect(200)
         .expect(function() {
           const report = $mock.report();
           assert.equal(1, report.spans.length);
           assert.ok(report.firstSpanWithTagValue('moreinfo', 'here'));
-        })
-        .then(() => { done(); })
-        .catch(err => { done(err); });
-
+        });
     });
 
-    it('should set error tags on status codes >= 500', function(done) {
-      request(app)
+    it('should set error tags on status codes >= 500', function() {
+      return request(app)
         .get('/error')
         .expect(500)
         .expect(function() {
@@ -169,14 +169,11 @@ describe('tracer express middleware', function() {
           assert.equal('GET', child.tags()[$tracer.Tags.HTTP_METHOD]);
           assert.equal($tracer.Tags.SPAN_KIND_RPC_SERVER, child.tags()[$tracer.Tags.SPAN_KIND]);
           assert.ok(child.tags()[$tracer.Tags.ERROR]);
-        })
-        .then(() => { done(); })
-        .catch(err => { done(err); });
-        
+        });
     });
 
-    it('should set error tags on exceptions', function(done) {
-      request(app)
+    it('should set error tags on exceptions', function() {
+      return request(app)
         .get('/exception')
         .expect(500)
         .expect(function() {
@@ -188,13 +185,11 @@ describe('tracer express middleware', function() {
           assert.equal('GET', child.tags()[$tracer.Tags.HTTP_METHOD]);
           assert.equal($tracer.Tags.SPAN_KIND_RPC_SERVER, child.tags()[$tracer.Tags.SPAN_KIND]);
           assert.ok(child.tags()[$tracer.Tags.ERROR]);
-        })
-        .then(() => { done(); })
-        .catch(err => { done(err); });
+        });
     });
 
-    it('should include span headers in the response', function(done) {
-      request(app)
+    it('should include span headers in the response', function() {
+      return request(app)
         .get('/success')
         .expect(200)
         .expect(function(res) {
@@ -203,9 +198,87 @@ describe('tracer express middleware', function() {
           const child = report.firstSpanWithTagValue($tracer.Tags.HTTP_STATUS_CODE, 200);
           assert.ok(child);
           assert.equal(child.uuid(), res.get('x-span-id'));
-        })
-        .then(() => { done(); })
-        .catch(err => { done(err); });
+        });
+    });
+  });
+
+  describe('wrapping existing middleware', function() {
+    var $mock;
+    var $tracer;
+    var app;
+    beforeEach(function() {
+      $mock = new opentracing.MockTracer();
+      // the mock tracer doesn't native support extract/inject.
+      $mock.inject = function(span, format, carrier) {
+        carrier['x-span-id'] = span.uuid();
+      };
+      $mock.extract = sinon.fake();
+      $tracer = require('../lib/tracer')({}, {}, {}, $mock);
+      app = express();
+      app.use($tracer.middleware.express);
+    });
+
+    it('should create and finish spans on next()', function() {
+      app.use($tracer.middleware.express.wrap('simple', function(req, res, next) {
+        next();
+      }));
+      app.get('/', function(req, res) {
+        res.send('ok');
+      });
+      return request(app)
+        .get('/')
+        .expect(200)
+        .expect(function() {
+          const report = $mock.report();
+          assert.equal(2, report.spans.length);
+          const child = report.firstSpanWithTagValue('finished.by', 'next');
+          assert.ok(child);
+          assert.equal('simple', child.operationName());
+        });
+    });
+
+    it('should create and finish spans on response', function() {
+      app.use($tracer.middleware.express.wrap('response', function(_req, res, _next) {
+        res.status(401).send('go away');
+      }));
+      app.get('/', function(_req, res) {
+        res.send('ok');
+      });
+      return request(app)
+        .get('/')
+        .expect(401)
+        .expect(function() {
+          const report = $mock.report();
+          assert.equal(2, report.spans.length);
+          const child = report.firstSpanWithTagValue('finished.by', 'response');
+          assert.ok(child);
+          assert.equal('response', child.operationName());
+        });
+    });
+
+    it('should create and finish spans on errors', function() {
+      app.use($tracer.middleware.express.wrap('error', function() {
+        throw new Error('middlware error');
+      }));
+      app.get('/', function(_req, res) {
+        res.send('ok');
+      });
+      // avoid printing the stack for throw exceptions, which
+      // pollutes the test logs.
+      app.use((_err, _req, res, _next) => {
+        res.status(500).send('error');
+      });
+      return request(app)
+        .get('/')
+        .expect(500)
+        .expect(function() {
+          const report = $mock.report();
+          assert.equal(2, report.spans.length);
+          const child = report.firstSpanWithTagValue('finished.by', 'error');
+          assert.ok(child);
+          assert.equal('error', child.operationName());
+          assert.ok(child.tags()[$tracer.Tags.ERROR]);
+        });
     });
   });
 });
