@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package auth0.instrumentation;
+
+message TraceContextTest {
+  string name = 1;
+  bytes span_context = 2;
+};
