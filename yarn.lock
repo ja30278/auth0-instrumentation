@@ -1057,6 +1057,10 @@ heavy@^4.0.4:
     hoek "4.x.x"
     joi "10.x.x"
 
+hex2dec@^1.0.1:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/hex2dec/-/hex2dec-1.1.0.tgz#ac98767d3b834f30e8c0cc7b7566f6bb8447922e"
+
 hoek@2.x.x:
   version "2.16.3"
   resolved "https://registry.yarnpkg.com/hoek/-/hoek-2.16.3.tgz#20bb7403d3cea398e91dc4710a8ff1b8274a25ed"
@@ -1335,13 +1339,14 @@ lcid@^1.0.0:
   dependencies:
     invert-kv "^1.0.0"
 
-lightstep-tracer@ja30278/lightstep-tracer-javascript#thrift10-3:
+lightstep-tracer@ja30278/lightstep-tracer-javascript#thrift10-4:
   version "0.20.9"
-  resolved "https://codeload.github.com/ja30278/lightstep-tracer-javascript/tar.gz/a475ed5874c9cc3c3e0fe9256678adaa2ae1af9e"
+  resolved "https://codeload.github.com/ja30278/lightstep-tracer-javascript/tar.gz/96ce0bc651ed6164ce92c1be02bbb48190dc3579"
   dependencies:
     async "1.5.0"
     eventemitter3 "1.1.1"
     google-protobuf "^3.6.1"
+    hex2dec "^1.0.1"
     source-map-support "0.3.3"
     thrift "0.10.0"
 
