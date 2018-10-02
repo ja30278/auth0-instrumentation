@@ -1331,9 +1331,9 @@ lcid@^1.0.0:
   dependencies:
     invert-kv "^1.0.0"
 
-lightstep-tracer@ja30278/lightstep-tracer-javascript:
+lightstep-tracer@ja30278/lightstep-tracer-javascript#thrift10:
   version "0.20.9"
-  resolved "https://codeload.github.com/ja30278/lightstep-tracer-javascript/tar.gz/adddef2d00d1541e0ca1dea3f576dee75b0c5731"
+  resolved "https://codeload.github.com/ja30278/lightstep-tracer-javascript/tar.gz/bbe7b0520d4d6c912feee471d2568daf3f14a684"
   dependencies:
     async "1.5.0"
     eventemitter3 "1.1.1"
