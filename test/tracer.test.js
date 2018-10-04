@@ -747,5 +747,22 @@ describe('trace request helper', function() {
       };
       $wrapRequest(requestjs)(params);
     });
+
+    it('should support "url" as a synonym for "uri" in params', function(done) {
+      const params = {
+        url: $address + '/success',
+        callback: (err, res, _body) => {
+          if (err) {
+            return done(err);
+          }
+          assert.equal(200, res.statusCode);
+          const report = $mock.report();
+          const span = report.firstSpanWithTagValue($tracer.Tags.HTTP_STATUS_CODE, 200);
+          assert.ok(span);
+          done();
+        }
+      };
+      $wrapRequest(requestjs)(params);
+    });
   });
 });
