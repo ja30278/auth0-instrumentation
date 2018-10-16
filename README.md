@@ -143,7 +143,7 @@ agent.init(pkg, env);
 const tracer = agent.tracer;
 
 const server = new hapi.Server();
-await server.register(tracer.middlware.hapi17);
+await server.register(tracer.middleware.hapi17);
 ```
 
 
