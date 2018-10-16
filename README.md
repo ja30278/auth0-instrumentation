@@ -107,7 +107,10 @@ var app = express();
 app.use(tracer.middleware.express);
 ```
 
-For hapijs (only hapi16 is currently supported).
+For hapijs:
+
+Version 16 (and below)
+
 
 ```js
 var pkg = require('./package.json');
@@ -128,6 +131,21 @@ var server = new hapi.Server();
 // the hapi request lifecycle.
 server.register(tracer.middleware.hapi16);
 ```
+
+Version 17 (and above)
+```
+const pkg = require('/package.json');
+const env = require('./lib/env');
+const agent = require('auth0-instrumentation');
+var hapi = require('hapi');
+
+agent.init(pkg, env);
+const tracer = agent.tracer;
+
+const server = new hapi.Server();
+await server.register(tracer.middlware.hapi17);
+```
+
 
 There is also a helper for wrapping outgoing requests made by
 the `requests` HTTP client library.
