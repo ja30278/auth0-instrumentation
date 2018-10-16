@@ -1,7 +1,71 @@
 # Changelog
+<a name="v2.19.0"></a>
+# v2.19.0
+### Bugfix
+* Fix undefined function call when using `PROFILE_GC` and not `HUNT_MEMORY_LEAKS`
+### Feature
+* Add HTTP request wrapper
+* https://github.com/auth0/auth0-instrumentation/compare/v2.18.0...v2.19.0
+
+<a name="v2.18.0"></a>
+# v2.18.0
+### Feature
+* Add Lighstep tracker backend
+* https://github.com/auth0/auth0-instrumentation/compare/v2.17.0...v2.18.0
+
+<a name="v2.17.0"></a>
+# v2.17.0
+### Feature
+* Add tracing support
+* https://github.com/auth0/auth0-instrumentation/compare/v2.16.0...v2.17.0
+
+<a name="v2.16.0"></a>
+# v2.16.0
+### Feature
+* `endTime` returns the elapsed time
+* https://github.com/auth0/auth0-instrumentation/compare/v2.15.1...v2.16.0
+
+<a name="v2.15.1"></a>
+# v2.15.1
+### Bugfix
+* Add `observeBucketed` to metic stubs
+* https://github.com/auth0/auth0-instrumentation/compare/v2.15.0...v2.15.1
+
+<a name="v2.15.0"></a>
+# v2.15.0
+### Bugfix
+* Upgrade aws-kinesis-writable library to 4.2.0
+### Feature
+* Add `observeBucketed` metric type.
+* https://github.com/auth0/auth0-instrumentation/compare/v2.14.1...v2.15.0
+
+<a name="v2.14.1"></a>
+# v2.14.1
+### Bugfix
+* Do not default to `undefined` for `purpose` and `environment`
+* https://github.com/auth0/auth0-instrumentation/compare/v2.14.0...v2.14.1
+
+<a name="v2.14.0"></a>
+# v2.14.0
+### Feature
+* Include `purpose` and `environment` on log messages from `ENVIRONMENT` and `PURPOSE` env variables
+* https://github.com/auth0/auth0-instrumentation/compare/v2.13.1...v2.14.0
+
+<a name="v2.13.1"></a>
+# v2.13.1
+### Feature
+* Add `incrementOne` to metrics
+* https://github.com/auth0/auth0-instrumentation/compare/v2.13.0...v2.13.1
+
+<a name="v2.13.0"></a>
+# v2.13.0
+### Feature
+* Allow logging to file using `LOG_FILE` option
+* https://github.com/auth0/auth0-instrumentation/compare/v2.12.1...v2.13.0
+
 <a name="v2.12.1"></a>
 # v2.12.1
-### Buf Fix
+### Bug Fix
 * Avoid pushing debug/info logs to Sentry as exceptions
 * https://github.com/auth0/auth0-instrumentation/compare/v2.12.0...v2.12.1
 

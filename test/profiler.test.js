@@ -1,10 +1,10 @@
 const assert = require('assert');
 const sinon = require('sinon');
-
+const $require = require('proxyquire').noPreserveCache();
 const Profiler = require('../lib/profiler');
 
 describe('Profiler', function() {
-  var profiler, agent;
+  let profiler, agent;
   beforeEach(function() {
     agent = {
       metrics: {
@@ -28,7 +28,7 @@ describe('Profiler', function() {
       // this test can be flaky, due to slowness in writing or snapshotting.
       this.retries(3);
       sinon.replace(profiler, 'report', sinon.spy());
-      this.timeout(3000);
+      this.timeout(5000);
       profiler.createThrottledSnapshot('testing');
       setTimeout(() => {
         try {
@@ -43,7 +43,7 @@ describe('Profiler', function() {
 
   describe('#createProfile', function() {
     it('should create a profile', function(done) {
-      this.timeout(3000);
+      this.timeout(5000);
       profiler.createProfile(1000, function(err, path) {
         try {
           assert.ifError(err);
@@ -52,6 +52,57 @@ describe('Profiler', function() {
         } catch (err) {
           done(err);
         }
+      });
+    });
+  });
+
+  describe('#setupGCReporter', () => {
+    const EventEmitter = require('events');
+    let stats;
+    function getProfiler(env) {
+      stats = new EventEmitter();
+      const Profiler = $require('../lib/profiler', {
+        'gc-stats': () => stats
+      });
+
+      return new Profiler(agent, { name: 'test' }, env);
+    }
+
+    describe('when there is a new GC stat', () => {
+      let clock;
+      beforeEach(() => {
+        clock = sinon.useFakeTimers(new Date(), 'setTimeout');
+      });
+
+      afterEach(() => {
+        clock.restore();
+      });
+
+      it ('does not takes snapshot', () => {
+        const profiler = getProfiler({ PROFILE_GC: true });
+        const createSnapshotStub = sinon.stub(profiler, 'createSnapshot');
+        stats.emit('stats', { pauseMS: 1000 });
+        clock.tick(6000);
+        sinon.assert.notCalled(createSnapshotStub);
+      });
+
+      describe('and HUNT_LONG_GC is set', () => {
+        it('does not take snapshot if pause <= 500', () => {
+          const profiler = getProfiler({ PROFILE_GC: true, HUNT_LONG_GC: true });
+          const createSnapshotStub = sinon.stub(profiler, 'createSnapshot');
+          stats.emit('stats', { pauseMS: 500 });
+          clock.tick(6000);
+          sinon.assert.notCalled(createSnapshotStub);
+        });
+
+        it('takes snapshot if pause > 500', () => {
+          const profiler = getProfiler({ PROFILE_GC: true, HUNT_LONG_GC: true });
+          const createSnapshotStub = sinon.stub(profiler, 'createSnapshot');
+          stats.emit('stats', { pauseMS: 501 });
+          clock.tick(6000);
+          sinon.assert.calledOnce(createSnapshotStub);
+          sinon.assert.calledWith(createSnapshotStub, 'LONG_GC_PAUSE');
+        });
       });
     });
   });

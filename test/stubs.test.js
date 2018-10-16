@@ -159,6 +159,10 @@ describe('stubs', function() {
       assert.doesNotThrow(tracer.extract, Error);
     });
 
+    it('should get Tags without throwing', function() {
+      assert.doesNotThrow(function() { return tracer.Tags.AUTH0_TENANT; }, Error);
+    });
+
     const span = tracer.startSpan('foo');
     describe('tracer', function() {
 
